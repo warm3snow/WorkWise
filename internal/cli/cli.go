@@ -6,9 +6,11 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/urfave/cli/v2"
 	"github.com/warm3snow/WorkWise/internal/agent"
+	"github.com/warm3snow/WorkWise/internal/analytics"
 	"github.com/warm3snow/WorkWise/internal/config"
 )
 
@@ -19,15 +21,29 @@ type App struct {
 	buildTime string
 	gitCommit string
 	agent     *agent.Agent
+	tracker   *analytics.Tracker
+	analyzer  *analytics.Analyzer
 }
 
 // NewApp creates a new CLI application
 func NewApp(cfg *config.Config, version, buildTime, gitCommit string) *App {
+	// Initialize tracker
+	tracker, err := analytics.NewTracker(cfg.Extensions.AnalyticsEnabled, cfg.Extensions.AnalyticsPath)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Warning: failed to initialize analytics tracker: %v\n", err)
+		tracker, _ = analytics.NewTracker(false, "") // Disabled tracker as fallback
+	}
+
+	// Initialize analyzer
+	analyzer := analytics.NewAnalyzer(cfg.Extensions.AnalyticsPath)
+
 	return &App{
 		config:    cfg,
 		version:   version,
 		buildTime: buildTime,
 		gitCommit: gitCommit,
+		tracker:   tracker,
+		analyzer:  analyzer,
 	}
 }
 
@@ -85,6 +101,43 @@ func (a *App) Run(args []string) error {
 				Usage:  "Show version information",
 				Action: a.versionCommand,
 			},
+			{
+				Name:    "stats",
+				Aliases: []string{"s"},
+				Usage:   "Show usage statistics",
+				Subcommands: []*cli.Command{
+					{
+						Name:   "today",
+						Usage:  "Show today's statistics",
+						Action: a.statsToday,
+					},
+					{
+						Name:   "week",
+						Usage:  "Show this week's statistics",
+						Action: a.statsWeek,
+					},
+					{
+						Name:   "month",
+						Usage:  "Show this month's statistics",
+						Action: a.statsMonth,
+					},
+				},
+				Action: a.statsToday, // Default to today
+			},
+			{
+				Name:    "report",
+				Aliases: []string{"r"},
+				Usage:   "Generate behavior analysis report",
+				Flags: []cli.Flag{
+					&cli.StringFlag{
+						Name:    "period",
+						Aliases: []string{"p"},
+						Usage:   "Report period (today, week, month)",
+						Value:   "today",
+					},
+				},
+				Action: a.reportCommand,
+			},
 		},
 		Action: a.defaultAction,
 	}
@@ -130,22 +183,35 @@ func (a *App) chatCommand(c *cli.Context) error {
 		// Handle special commands
 		switch strings.ToLower(input) {
 		case "exit", "quit", "q":
+			a.tracker.TrackSessionEnd()
 			fmt.Println("Goodbye!")
 			return nil
 		case "help", "?":
+			a.tracker.TrackCommand("help", a.tracker.GetSessionID())
 			a.printHelp()
 			continue
 		case "clear", "cls":
+			a.tracker.TrackCommand("clear", a.tracker.GetSessionID())
 			fmt.Print("\033[H\033[2J")
 			continue
 		}
 
+		// Track query
+		a.tracker.TrackQuery(input, a.tracker.GetSessionID())
+
 		// Process user input with agent
+		startTime := time.Now()
 		response, err := a.agent.Process(ctx, input)
+		duration := time.Since(startTime)
+		
 		if err != nil {
+			a.tracker.TrackError(err.Error(), a.tracker.GetSessionID())
 			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 			continue
 		}
+
+		// Track response
+		a.tracker.TrackResponse(response, duration, 0, a.config.AI.Model, a.tracker.GetSessionID())
 
 		fmt.Println(response)
 		fmt.Println()
@@ -171,11 +237,23 @@ func (a *App) askCommand(c *cli.Context) error {
 		return fmt.Errorf("failed to initialize agent: %w", err)
 	}
 
+	// Track query
+	sessionID := a.tracker.GetSessionID()
+	a.tracker.TrackQuery(question, sessionID)
+
 	ctx := context.Background()
+	startTime := time.Now()
 	response, err := a.agent.Process(ctx, question)
+	duration := time.Since(startTime)
+	
 	if err != nil {
+		a.tracker.TrackError(err.Error(), sessionID)
 		return fmt.Errorf("error processing question: %w", err)
 	}
+
+	// Track response
+	a.tracker.TrackResponse(response, duration, 0, a.config.AI.Model, sessionID)
+	a.tracker.TrackSessionEnd()
 
 	fmt.Println(response)
 	return nil
@@ -196,6 +274,7 @@ func (a *App) configShowCommand(c *cli.Context) error {
 	fmt.Printf("MCP Enabled: %v\n", a.config.Extensions.MCPEnabled)
 	fmt.Printf("Skills Enabled: %v\n", a.config.Extensions.SkillsEnabled)
 	fmt.Printf("Desktop Enabled: %v\n", a.config.Extensions.DesktopEnabled)
+	fmt.Printf("Analytics Enabled: %v\n", a.config.Extensions.AnalyticsEnabled)
 	return nil
 }
 
@@ -234,4 +313,82 @@ func (a *App) printHelp() {
 	fmt.Println("  clear, cls  - Clear the screen")
 	fmt.Println("  exit, quit  - Exit the application")
 	fmt.Println("\nJust type your question or request and press Enter!")
+}
+
+// statsToday shows today's statistics
+func (a *App) statsToday(c *cli.Context) error {
+	if !a.config.Extensions.AnalyticsEnabled {
+		fmt.Println("Analytics is not enabled. Enable it in your config file.")
+		return nil
+	}
+
+	stats, err := a.analyzer.AnalyzeToday()
+	if err != nil {
+		return fmt.Errorf("failed to analyze statistics: %w", err)
+	}
+
+	fmt.Println(analytics.FormatStatistics(stats))
+	return nil
+}
+
+// statsWeek shows this week's statistics
+func (a *App) statsWeek(c *cli.Context) error {
+	if !a.config.Extensions.AnalyticsEnabled {
+		fmt.Println("Analytics is not enabled. Enable it in your config file.")
+		return nil
+	}
+
+	stats, err := a.analyzer.AnalyzeWeek()
+	if err != nil {
+		return fmt.Errorf("failed to analyze statistics: %w", err)
+	}
+
+	fmt.Println(analytics.FormatStatistics(stats))
+	return nil
+}
+
+// statsMonth shows this month's statistics
+func (a *App) statsMonth(c *cli.Context) error {
+	if !a.config.Extensions.AnalyticsEnabled {
+		fmt.Println("Analytics is not enabled. Enable it in your config file.")
+		return nil
+	}
+
+	stats, err := a.analyzer.AnalyzeMonth()
+	if err != nil {
+		return fmt.Errorf("failed to analyze statistics: %w", err)
+	}
+
+	fmt.Println(analytics.FormatStatistics(stats))
+	return nil
+}
+
+// reportCommand generates a behavior analysis report
+func (a *App) reportCommand(c *cli.Context) error {
+	if !a.config.Extensions.AnalyticsEnabled {
+		fmt.Println("Analytics is not enabled. Enable it in your config file.")
+		return nil
+	}
+
+	period := c.String("period")
+	var stats *analytics.Statistics
+	var err error
+
+	switch period {
+	case "today":
+		stats, err = a.analyzer.AnalyzeToday()
+	case "week":
+		stats, err = a.analyzer.AnalyzeWeek()
+	case "month":
+		stats, err = a.analyzer.AnalyzeMonth()
+	default:
+		return fmt.Errorf("invalid period: %s (must be today, week, or month)", period)
+	}
+
+	if err != nil {
+		return fmt.Errorf("failed to generate report: %w", err)
+	}
+
+	fmt.Println(analytics.FormatStatistics(stats))
+	return nil
 }

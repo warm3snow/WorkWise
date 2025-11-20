@@ -62,6 +62,10 @@ type ExtensionsConfig struct {
 	DesktopEnabled  bool   `yaml:"desktop_enabled"`
 	DesktopHotkey   string `yaml:"desktop_hotkey,omitempty"`
 	DesktopPosition string `yaml:"desktop_position,omitempty"`
+
+	// Analytics configuration
+	AnalyticsEnabled bool   `yaml:"analytics_enabled"`
+	AnalyticsPath    string `yaml:"analytics_path,omitempty"`
 }
 
 // DefaultConfig returns a configuration with sensible defaults
@@ -86,9 +90,11 @@ func DefaultConfig() *Config {
 			HistoryFile: filepath.Join(homeDir, ".workwise_history"),
 		},
 		Extensions: ExtensionsConfig{
-			MCPEnabled:     false,
-			SkillsEnabled:  false,
-			DesktopEnabled: false,
+			MCPEnabled:       false,
+			SkillsEnabled:    false,
+			DesktopEnabled:   false,
+			AnalyticsEnabled: true,
+			AnalyticsPath:    filepath.Join(homeDir, ".workwise", "analytics"),
 		},
 	}
 }
