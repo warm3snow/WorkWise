@@ -1,15 +1,15 @@
 ai:
-  # For OpenAI:
-  provider: openai
-  api_key: your-api-key-here
-  model: gpt-4
-  base_url: ""  # Optional: for OpenAI-compatible APIs
-  
-  # For Ollama (local models):
-  # provider: ollama
-  # model: llama3  # or mistral, codellama, etc.
-  # base_url: ""  # Optional: defaults to http://localhost:11434
+  # For Ollama (local models) - DEFAULT:
+  provider: ollama
+  model: deepseek-r1:8b  # or llama3, mistral, codellama, etc.
+  base_url: "http://localhost:11434"  # Default Ollama endpoint
   # Note: api_key is not required for Ollama
+  
+  # For OpenAI:
+  # provider: openai
+  # api_key: your-api-key-here
+  # model: gpt-4
+  # base_url: ""  # Optional: for OpenAI-compatible APIs
   
   agent:
     max_iterations: 10
