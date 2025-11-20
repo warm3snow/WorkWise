@@ -73,6 +73,9 @@ description: Clear description of what this skill does and when to use it
 ### example-skill
 A template and reference implementation showing the proper structure and format for creating skills.
 
+### file-search
+A local file search skill providing Spotlight-like functionality. Enables searching for files by name, extension, content, size, and modification time. Includes a Python helper script for performing searches on the local filesystem.
+
 ## Resources
 
 - [Anthropic Skills Repository](https://github.com/anthropics/skills) - Official skills examples
