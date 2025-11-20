@@ -69,8 +69,9 @@ func DefaultConfig() *Config {
 	homeDir, _ := os.UserHomeDir()
 	return &Config{
 		AI: AIConfig{
-			Provider: "openai",
-			Model:    "gpt-4",
+			Provider: "ollama",
+			Model:    "deepseek-r1:8b",
+			BaseURL:  "http://localhost:11434",
 			Agent: AgentConfig{
 				MaxIterations:  10,
 				Temperature:    0.7,
@@ -118,6 +119,9 @@ func Load() (*Config, error) {
 	}
 	if model := os.Getenv("WORKWISE_MODEL"); model != "" {
 		cfg.AI.Model = model
+	}
+	if baseURL := os.Getenv("WORKWISE_BASE_URL"); baseURL != "" {
+		cfg.AI.BaseURL = baseURL
 	}
 
 	return cfg, nil

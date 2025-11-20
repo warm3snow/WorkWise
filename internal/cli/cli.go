@@ -187,6 +187,9 @@ func (a *App) configShowCommand(c *cli.Context) error {
 	fmt.Println("---")
 	fmt.Printf("Provider: %s\n", a.config.AI.Provider)
 	fmt.Printf("Model: %s\n", a.config.AI.Model)
+	if a.config.AI.BaseURL != "" {
+		fmt.Printf("Base URL: %s\n", a.config.AI.BaseURL)
+	}
 	fmt.Printf("Max Iterations: %d\n", a.config.AI.Agent.MaxIterations)
 	fmt.Printf("Temperature: %.2f\n", a.config.AI.Agent.Temperature)
 	fmt.Printf("History Enabled: %v\n", a.config.AI.Agent.HistoryEnabled)
