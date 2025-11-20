@@ -63,9 +63,12 @@ func newOllamaClient(cfg *config.Config) (model.ChatModel, error) {
 		Model: cfg.AI.Model,
 	}
 
-	// Set base URL if provided, otherwise use default (http://localhost:11434)
+	// Set base URL if provided, otherwise use default Ollama endpoint
 	if cfg.AI.BaseURL != "" {
 		clientConfig.BaseURL = cfg.AI.BaseURL
+	} else {
+		// Default Ollama base URL
+		clientConfig.BaseURL = "http://localhost:11434"
 	}
 
 	// Set temperature through Options
