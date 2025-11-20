@@ -14,6 +14,7 @@ WorkWise is a flagship-level AIPC (AI-Powered Computer) application designed to 
 - **🔌 LLM Integration**: Integrates with various LLM providers via CloudWeGo Eino-Ext
 - **📝 Conversation History**: Maintains context across conversations
 - **🎨 Cross-Platform Ready**: Designed for Windows and macOS support
+- **🔍 Local File Search**: Spotlight-like file search functionality for finding files by name, content, and attributes
 
 ## 🚀 Future Roadmap
 
