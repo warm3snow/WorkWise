@@ -1,8 +1,16 @@
 ai:
+  # For OpenAI:
   provider: openai
   api_key: your-api-key-here
   model: gpt-4
   base_url: ""  # Optional: for OpenAI-compatible APIs
+  
+  # For Ollama (local models):
+  # provider: ollama
+  # model: llama3  # or mistral, codellama, etc.
+  # base_url: ""  # Optional: defaults to http://localhost:11434
+  # Note: api_key is not required for Ollama
+  
   agent:
     max_iterations: 10
     temperature: 0.7

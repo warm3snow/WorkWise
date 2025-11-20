@@ -61,16 +61,53 @@ export WORKWISE_PROVIDER="openai"
 export WORKWISE_MODEL="gpt-4"
 ```
 
+For Ollama (local models):
+```bash
+export WORKWISE_PROVIDER="ollama"
+export WORKWISE_MODEL="llama3"
+# Optional: customize Ollama base URL (defaults to http://localhost:11434)
+# export WORKWISE_BASE_URL="http://localhost:11434"
+```
+
 ### Configuration File
 
 Create a configuration file at `~/.workwise/config.yaml`:
 
+For OpenAI:
 ```yaml
 ai:
   provider: openai
   api_key: your-api-key-here
   model: gpt-4
   base_url: ""  # Optional: for compatible APIs
+  agent:
+    max_iterations: 10
+    temperature: 0.7
+    system_prompt: "You are WorkWise, an intelligent desktop assistant. Help users with their tasks efficiently and professionally."
+    history_enabled: true
+    max_history: 50
+
+cli:
+  interactive: true
+  prompt: "WorkWise> "
+  history_file: ~/.workwise_history
+
+extensions:
+  mcp_enabled: false
+  mcp_servers: []
+  skills_enabled: false
+  skills_paths: []
+  desktop_enabled: false
+  desktop_hotkey: ""
+  desktop_position: ""
+```
+
+For Ollama (local models):
+```yaml
+ai:
+  provider: ollama
+  model: llama3  # or mistral, codellama, etc.
+  base_url: ""  # Optional: defaults to http://localhost:11434
   agent:
     max_iterations: 10
     temperature: 0.7
@@ -210,6 +247,7 @@ WorkWise/
 Currently supported providers:
 
 - **OpenAI**: GPT-4, GPT-3.5-turbo, and compatible APIs
+- **Ollama**: Local LLM models (Llama, Mistral, etc.)
 
 Future providers:
 - Anthropic Claude (via Eino-Ext)
