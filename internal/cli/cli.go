@@ -203,7 +203,7 @@ func (a *App) chatCommand(c *cli.Context) error {
 		startTime := time.Now()
 		response, err := a.agent.Process(ctx, input)
 		duration := time.Since(startTime)
-		
+
 		if err != nil {
 			a.tracker.TrackError(err.Error(), a.tracker.GetSessionID())
 			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
@@ -245,7 +245,7 @@ func (a *App) askCommand(c *cli.Context) error {
 	startTime := time.Now()
 	response, err := a.agent.Process(ctx, question)
 	duration := time.Since(startTime)
-	
+
 	if err != nil {
 		a.tracker.TrackError(err.Error(), sessionID)
 		return fmt.Errorf("error processing question: %w", err)

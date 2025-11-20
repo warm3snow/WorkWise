@@ -92,7 +92,7 @@ func TestAnalyzeToday(t *testing.T) {
 	if err != nil {
 		t.Errorf("AnalyzeToday failed: %v", err)
 	}
-	
+
 	if stats == nil {
 		t.Error("Expected non-nil statistics")
 	}
@@ -104,12 +104,12 @@ func TestAnalyzeEmptyPeriod(t *testing.T) {
 
 	startDate := time.Now().Add(-7 * 24 * time.Hour)
 	endDate := time.Now()
-	
+
 	stats, err := analyzer.AnalyzePeriod(startDate, endDate)
 	if err != nil {
 		t.Errorf("AnalyzePeriod should not fail on empty data: %v", err)
 	}
-	
+
 	if stats.TotalQueries != 0 {
 		t.Errorf("Expected 0 queries, got %d", stats.TotalQueries)
 	}
@@ -150,12 +150,12 @@ func TestCalculateProductivityScore(t *testing.T) {
 
 func TestGetInsights(t *testing.T) {
 	stats := &Statistics{
-		Period:         "2024-01-01 to 2024-01-07",
-		TotalQueries:   50,
-		TotalErrors:    5,
-		ErrorRate:      0.1,
-		MostActiveHour: 14,
-		AvgSessionTime: 45 * time.Minute,
+		Period:            "2024-01-01 to 2024-01-07",
+		TotalQueries:      50,
+		TotalErrors:       5,
+		ErrorRate:         0.1,
+		MostActiveHour:    14,
+		AvgSessionTime:    45 * time.Minute,
 		ProductivityScore: 75.0,
 		TopCommands: map[string]int{
 			"help": 10,
@@ -164,7 +164,7 @@ func TestGetInsights(t *testing.T) {
 	}
 
 	insights := GetInsights(stats)
-	
+
 	if len(insights) == 0 {
 		t.Error("Expected insights, got none")
 	}
@@ -207,7 +207,7 @@ func TestFormatStatistics(t *testing.T) {
 	}
 
 	formatted := FormatStatistics(stats)
-	
+
 	if len(formatted) == 0 {
 		t.Error("Expected formatted output, got empty string")
 	}
@@ -222,6 +222,6 @@ func TestFormatStatistics(t *testing.T) {
 }
 
 func contains(s, substr string) bool {
-	return len(s) >= len(substr) && (s == substr || len(s) > len(substr) && 
+	return len(s) >= len(substr) && (s == substr || len(s) > len(substr) &&
 		(s[:len(substr)] == substr || contains(s[1:], substr)))
 }

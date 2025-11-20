@@ -40,13 +40,13 @@ func TestTrackQuery(t *testing.T) {
 
 	sessionID := "test-session"
 	query := "test query"
-	
+
 	tracker.TrackQuery(query, sessionID)
-	
+
 	if len(tracker.events) != 1 {
 		t.Errorf("Expected 1 event, got %d", len(tracker.events))
 	}
-	
+
 	event := tracker.events[0]
 	if event.Type != BehaviorQuery {
 		t.Errorf("Expected type %s, got %s", BehaviorQuery, event.Type)
@@ -71,13 +71,13 @@ func TestTrackResponse(t *testing.T) {
 	duration := 100 * time.Millisecond
 	tokenCount := 50
 	model := "test-model"
-	
+
 	tracker.TrackResponse(response, duration, tokenCount, model, sessionID)
-	
+
 	if len(tracker.events) != 1 {
 		t.Errorf("Expected 1 event, got %d", len(tracker.events))
 	}
-	
+
 	event := tracker.events[0]
 	if event.Type != BehaviorResponse {
 		t.Errorf("Expected type %s, got %s", BehaviorResponse, event.Type)
@@ -103,19 +103,19 @@ func TestPersist(t *testing.T) {
 	// Add some events
 	tracker.TrackQuery("query 1", "session-1")
 	tracker.TrackQuery("query 2", "session-1")
-	
+
 	// Persist
 	err = tracker.persist()
 	if err != nil {
 		t.Errorf("Persist failed: %v", err)
 	}
-	
+
 	// Check file exists
 	filePath := tracker.getTodayFilePath()
 	if _, err := os.Stat(filePath); os.IsNotExist(err) {
 		t.Error("Events file was not created")
 	}
-	
+
 	// Events should be cleared after persist
 	if len(tracker.events) != 0 {
 		t.Errorf("Events should be cleared after persist, got %d", len(tracker.events))
@@ -124,14 +124,14 @@ func TestPersist(t *testing.T) {
 
 func TestTrackerDisabled(t *testing.T) {
 	tracker, _ := NewTracker(false, "")
-	
+
 	// These should not panic or error when disabled
 	tracker.TrackQuery("test", "session")
 	tracker.TrackResponse("test", 0, 0, "", "session")
 	tracker.TrackCommand("test", "session")
 	tracker.TrackError("test", "session")
 	tracker.TrackSessionEnd()
-	
+
 	if len(tracker.events) != 0 {
 		t.Error("Disabled tracker should not track events")
 	}
@@ -140,11 +140,11 @@ func TestTrackerDisabled(t *testing.T) {
 func TestGetTodayFilePath(t *testing.T) {
 	tmpDir := t.TempDir()
 	tracker, _ := NewTracker(true, tmpDir)
-	
+
 	filePath := tracker.getTodayFilePath()
 	today := time.Now().Format("2006-01-02")
 	expected := filepath.Join(tmpDir, "events-"+today+".json")
-	
+
 	if filePath != expected {
 		t.Errorf("Expected file path %s, got %s", expected, filePath)
 	}

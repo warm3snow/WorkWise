@@ -13,11 +13,11 @@ import (
 type BehaviorType string
 
 const (
-	BehaviorQuery     BehaviorType = "query"
-	BehaviorResponse  BehaviorType = "response"
-	BehaviorCommand   BehaviorType = "command"
-	BehaviorSession   BehaviorType = "session"
-	BehaviorError     BehaviorType = "error"
+	BehaviorQuery    BehaviorType = "query"
+	BehaviorResponse BehaviorType = "response"
+	BehaviorCommand  BehaviorType = "command"
+	BehaviorSession  BehaviorType = "session"
+	BehaviorError    BehaviorType = "error"
 )
 
 // BehaviorEvent represents a single user behavior event
@@ -31,23 +31,23 @@ type BehaviorEvent struct {
 
 // Metadata contains additional information about the behavior
 type Metadata struct {
-	Duration      time.Duration `json:"duration,omitempty"`
-	TokenCount    int           `json:"token_count,omitempty"`
-	Model         string        `json:"model,omitempty"`
-	Success       bool          `json:"success"`
-	ErrorMessage  string        `json:"error_message,omitempty"`
-	SessionID     string        `json:"session_id,omitempty"`
-	CommandName   string        `json:"command_name,omitempty"`
+	Duration     time.Duration `json:"duration,omitempty"`
+	TokenCount   int           `json:"token_count,omitempty"`
+	Model        string        `json:"model,omitempty"`
+	Success      bool          `json:"success"`
+	ErrorMessage string        `json:"error_message,omitempty"`
+	SessionID    string        `json:"session_id,omitempty"`
+	CommandName  string        `json:"command_name,omitempty"`
 }
 
 // Tracker tracks user behaviors
 type Tracker struct {
-	enabled     bool
-	dataPath    string
-	events      []BehaviorEvent
-	sessionID   string
+	enabled      bool
+	dataPath     string
+	events       []BehaviorEvent
+	sessionID    string
 	sessionStart time.Time
-	mu          sync.RWMutex
+	mu           sync.RWMutex
 }
 
 // NewTracker creates a new behavior tracker
@@ -62,7 +62,7 @@ func NewTracker(enabled bool, dataPath string) (*Tracker, error) {
 	}
 
 	sessionID := generateSessionID()
-	
+
 	tracker := &Tracker{
 		enabled:      true,
 		dataPath:     dataPath,
@@ -87,9 +87,9 @@ func (t *Tracker) TrackQuery(query string, sessionID string) {
 	}
 
 	event := BehaviorEvent{
-		ID:        generateEventID(),
-		Type:      BehaviorQuery,
-		Content:   query,
+		ID:      generateEventID(),
+		Type:    BehaviorQuery,
+		Content: query,
 		Metadata: Metadata{
 			SessionID: sessionID,
 			Success:   true,
@@ -107,9 +107,9 @@ func (t *Tracker) TrackResponse(response string, duration time.Duration, tokenCo
 	}
 
 	event := BehaviorEvent{
-		ID:        generateEventID(),
-		Type:      BehaviorResponse,
-		Content:   response,
+		ID:      generateEventID(),
+		Type:    BehaviorResponse,
+		Content: response,
 		Metadata: Metadata{
 			Duration:   duration,
 			TokenCount: tokenCount,
@@ -182,7 +182,7 @@ func (t *Tracker) TrackSessionEnd() {
 	}
 
 	t.addEvent(event)
-	
+
 	// Persist events to file
 	if err := t.persist(); err != nil {
 		fmt.Fprintf(os.Stderr, "Warning: failed to persist events: %v\n", err)
@@ -248,7 +248,7 @@ func (t *Tracker) persist() error {
 // loadTodayEvents loads events from today's file
 func (t *Tracker) loadTodayEvents() error {
 	filePath := t.getTodayFilePath()
-	
+
 	data, err := os.ReadFile(filePath)
 	if err != nil {
 		if os.IsNotExist(err) {

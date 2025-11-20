@@ -12,21 +12,21 @@ import (
 
 // Statistics represents aggregated behavior statistics
 type Statistics struct {
-	Period            string            `json:"period"`
-	TotalQueries      int               `json:"total_queries"`
-	TotalResponses    int               `json:"total_responses"`
-	TotalCommands     int               `json:"total_commands"`
-	TotalErrors       int               `json:"total_errors"`
-	TotalSessions     int               `json:"total_sessions"`
-	AvgResponseTime   time.Duration     `json:"avg_response_time"`
-	AvgSessionTime    time.Duration     `json:"avg_session_time"`
-	TotalTokens       int               `json:"total_tokens"`
-	TopCommands       map[string]int    `json:"top_commands"`
-	HourlyActivity    map[int]int       `json:"hourly_activity"`
-	DailyActivity     map[string]int    `json:"daily_activity"`
-	ErrorRate         float64           `json:"error_rate"`
-	MostActiveHour    int               `json:"most_active_hour"`
-	ProductivityScore float64           `json:"productivity_score"`
+	Period            string         `json:"period"`
+	TotalQueries      int            `json:"total_queries"`
+	TotalResponses    int            `json:"total_responses"`
+	TotalCommands     int            `json:"total_commands"`
+	TotalErrors       int            `json:"total_errors"`
+	TotalSessions     int            `json:"total_sessions"`
+	AvgResponseTime   time.Duration  `json:"avg_response_time"`
+	AvgSessionTime    time.Duration  `json:"avg_session_time"`
+	TotalTokens       int            `json:"total_tokens"`
+	TopCommands       map[string]int `json:"top_commands"`
+	HourlyActivity    map[int]int    `json:"hourly_activity"`
+	DailyActivity     map[string]int `json:"daily_activity"`
+	ErrorRate         float64        `json:"error_rate"`
+	MostActiveHour    int            `json:"most_active_hour"`
+	ProductivityScore float64        `json:"productivity_score"`
 }
 
 // Analyzer analyzes user behavior data
@@ -284,14 +284,14 @@ func FormatStatistics(stats *Statistics) string {
 	sb.WriteString(fmt.Sprintf("Total Sessions:     %d\n", stats.TotalSessions))
 	sb.WriteString(fmt.Sprintf("Total Errors:       %d\n", stats.TotalErrors))
 	sb.WriteString(fmt.Sprintf("Error Rate:         %.1f%%\n", stats.ErrorRate*100))
-	
+
 	if stats.AvgResponseTime > 0 {
 		sb.WriteString(fmt.Sprintf("Avg Response Time:  %v\n", stats.AvgResponseTime.Round(time.Millisecond)))
 	}
 	if stats.AvgSessionTime > 0 {
 		sb.WriteString(fmt.Sprintf("Avg Session Time:   %v\n", stats.AvgSessionTime.Round(time.Minute)))
 	}
-	
+
 	sb.WriteString(fmt.Sprintf("Total Tokens:       %d\n", stats.TotalTokens))
 	sb.WriteString(fmt.Sprintf("Most Active Hour:   %d:00\n", stats.MostActiveHour))
 	sb.WriteString(fmt.Sprintf("Productivity Score: %.1f/100\n", stats.ProductivityScore))
@@ -299,7 +299,7 @@ func FormatStatistics(stats *Statistics) string {
 	// Top commands
 	if len(stats.TopCommands) > 0 {
 		sb.WriteString("\nTop Commands:\n")
-		
+
 		// Sort commands by count
 		type cmdCount struct {
 			cmd   string
@@ -312,7 +312,7 @@ func FormatStatistics(stats *Statistics) string {
 		sort.Slice(cmds, func(i, j int) bool {
 			return cmds[i].count > cmds[j].count
 		})
-		
+
 		for i, cc := range cmds {
 			if i >= 5 {
 				break
@@ -324,14 +324,14 @@ func FormatStatistics(stats *Statistics) string {
 	// Daily activity
 	if len(stats.DailyActivity) > 0 {
 		sb.WriteString("\nDaily Activity:\n")
-		
+
 		// Sort days
 		days := make([]string, 0, len(stats.DailyActivity))
 		for day := range stats.DailyActivity {
 			days = append(days, day)
 		}
 		sort.Strings(days)
-		
+
 		for _, day := range days {
 			count := stats.DailyActivity[day]
 			sb.WriteString(fmt.Sprintf("  %s: %d events\n", day, count))
