@@ -13,6 +13,7 @@ WorkWise is a flagship-level AIPC (AI-Powered Computer) application designed to 
 - **🎯 Agent Framework**: Uses CloudWeGo Eino for robust agent orchestration
 - **🔌 LLM Integration**: Integrates with various LLM providers via CloudWeGo Eino-Ext
 - **📝 Conversation History**: Maintains context across conversations
+- **📊 Behavior Analytics**: Track usage patterns, generate insights, and manage your time effectively
 - **🎨 Cross-Platform Ready**: Designed for Windows and macOS support
 
 ## 🚀 Future Roadmap
@@ -100,6 +101,8 @@ extensions:
   desktop_enabled: false
   desktop_hotkey: ""
   desktop_position: ""
+  analytics_enabled: true
+  analytics_path: ~/.workwise/analytics
 ```
 
 For Ollama (local models):
@@ -128,6 +131,8 @@ extensions:
   desktop_enabled: false
   desktop_hotkey: ""
   desktop_position: ""
+  analytics_enabled: true
+  analytics_path: ~/.workwise/analytics
 ```
 
 Generate a default configuration file:
@@ -211,6 +216,67 @@ WorkWise supports Anthropic-style skills for extending agent capabilities:
 Skills are automatically discovered and loaded, providing specialized instructions and workflows to the agent.
 
 For more details, see [examples/skills/README.md](examples/skills/README.md) and the [Architecture documentation](docs/ARCHITECTURE.md).
+
+### Behavior Analytics and Time Management
+
+WorkWise includes a powerful analytics system to track your usage patterns and help manage your time effectively:
+
+#### View Statistics
+
+```bash
+# Show today's statistics
+workwise stats today
+
+# Show this week's statistics
+workwise stats week
+
+# Show this month's statistics
+workwise stats month
+
+# Or simply use
+workwise stats  # defaults to today
+```
+
+#### Generate Reports
+
+```bash
+# Generate a report for today
+workwise report
+
+# Generate weekly report
+workwise report --period=week
+
+# Generate monthly report
+workwise report --period=month
+```
+
+#### What's Tracked
+
+- **Query Activity**: All your questions and requests
+- **Response Times**: How long responses take
+- **Command Usage**: Which commands you use most
+- **Session Duration**: How long you work in each session
+- **Errors**: Any errors that occur
+- **Hourly Patterns**: When you're most active
+
+#### Analytics Features
+
+- **Productivity Score**: Get a score based on your activity and success rate
+- **Time Insights**: Discover your most productive hours
+- **Usage Patterns**: See which commands and features you use most
+- **Error Tracking**: Identify and address recurring issues
+- **Daily/Weekly/Monthly Reports**: Track progress over time
+
+All analytics data is stored locally in `~/.workwise/analytics/` as JSON files, one file per day.
+
+#### Disable Analytics
+
+If you prefer not to track analytics, disable it in your config:
+
+```yaml
+extensions:
+  analytics_enabled: false
+```
 
 ## 🏗️ Architecture
 
