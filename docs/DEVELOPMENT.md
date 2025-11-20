@@ -19,8 +19,13 @@ WorkWise/
 ├── pkg/                   # Public packages (can be imported by external packages)
 │   ├── mcp/               # Model Context Protocol support (future)
 │   │   └── mcp.go         # MCP server management interface
-│   └── skills/            # Skills framework (future)
-│       └── skills.go      # Skills registry and execution
+│   └── skills/            # Skills framework (Anthropic-style)
+│       ├── skills.go      # Skills loader and parser
+│       └── skills_test.go # Unit tests
+├── examples/              # Example content
+│   └── skills/            # Example skills following Anthropic spec
+│       ├── README.md      # Skills usage guide
+│       └── example-skill/ # Template skill
 ├── .gitignore            # Git ignore patterns
 ├── config.example.yaml   # Example configuration file
 ├── go.mod                # Go module definition
@@ -76,14 +81,17 @@ WorkWise/
   - Resource access control
 
 #### Skills Framework (`pkg/skills`)
-- Extensible capability system
-- Registry-based skill management
-- Future skills:
-  - File operations
-  - Web search
-  - Code execution
-  - System commands
-  - Custom user-defined skills
+- Implements Anthropic Agent Skills Specification
+- Filesystem-based skills loader
+- Skills are folders with SKILL.md files containing:
+  - YAML frontmatter (name, description, metadata)
+  - Markdown instructions for the agent
+  - Optional scripts and resources
+- Features:
+  - Automatic skill discovery from configured paths
+  - Skill validation and parsing
+  - Script and resource path helpers
+- Example skills in `examples/skills/`
 
 ## Development Workflow
 

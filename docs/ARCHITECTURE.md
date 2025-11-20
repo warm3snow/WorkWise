@@ -68,36 +68,60 @@ Returns Result → Agent Continues Processing
 
 The `pkg/skills` package provides a registry-based system:
 
+#### Current Architecture
+
+The `pkg/skills` package provides a filesystem-based skills loader following the Anthropic Agent Skills Spec:
+
 ```go
-type Skill interface {
-    Name() string
-    Description() string
-    Parameters() map[string]interface{}
-    Execute(ctx context.Context, params map[string]interface{}) (interface{}, error)
+type Skill struct {
+    // Metadata from YAML frontmatter
+    Name        string
+    Description string
+    License     string
+    AllowedTools []string
+    Metadata    map[string]string
+    
+    // Content from markdown body
+    Instructions string
+    
+    // Path information
+    SkillPath string
 }
 ```
 
+**Reference**: [Anthropic Skills Specification](https://github.com/anthropics/skills)
+
 #### Implementation Strategy
 
-Skills can be implemented as:
+Skills are folder-based with a `SKILL.md` file containing YAML frontmatter and markdown instructions:
 
-1. **Built-in Skills**: Compiled into the binary
-   ```go
-   type FileReadSkill struct {
-       *BaseSkill
-   }
-   
-   func (s *FileReadSkill) Execute(ctx context.Context, params map[string]interface{}) (interface{}, error) {
-       path := params["path"].(string)
-       return os.ReadFile(path)
-   }
+1. **Skill Structure**:
+   ```
+   skill-name/
+   ├── SKILL.md          # Required: Frontmatter + instructions
+   ├── scripts/          # Optional: Executable scripts
+   │   └── helper.py
+   └── resources/        # Optional: Additional files
+       └── template.txt
    ```
 
-2. **Plugin Skills**: Loaded dynamically from separate binaries using Go plugins
-   ```go
-   plugin, err := plugin.Open("skills/custom_skill.so")
-   skillFunc, err := plugin.Lookup("NewSkill")
-   skill := skillFunc.(func() skills.Skill)()
+2. **SKILL.md Format**:
+   ```markdown
+   ---
+   name: skill-name
+   description: Clear description of what this skill does and when to use it
+   license: MIT
+   metadata:
+     version: "1.0"
+   ---
+   
+   # Skill Name
+   
+   [Instructions that the agent will follow when this skill is active]
+   
+   ## Usage
+   - Example 1
+   - Example 2
    ```
 
 3. **Configuration**: Already supported:
@@ -109,31 +133,51 @@ Skills can be implemented as:
        - "~/.workwise/skills"
    ```
 
-#### Example Built-in Skills
+4. **Loading Skills**:
+   ```go
+   loader := skills.NewLoader([]string{"./skills", "~/.workwise/skills"})
+   err := loader.LoadAll()
+   
+   // Get a specific skill
+   skill, err := loader.Get("skill-name")
+   
+   // Access skill instructions
+   instructions := skill.Instructions
+   
+   // Check for scripts
+   if skill.HasScript("helper.py") {
+       scriptPath := skill.GetScriptPath("helper.py")
+   }
+   ```
 
-**File Operations Skill**:
-- Read files
-- Write files
-- List directories
-- Search files
+#### Example Skills
 
-**Web Search Skill**:
-- Search the web
-- Fetch webpage content
-- Extract structured data
+Skills provide instructions and workflows rather than executable code:
 
-**Code Execution Skill**:
-- Execute code snippets safely
-- Support multiple languages
-- Return output and errors
+**Document Creation Skill**:
+- Instructions for creating structured documents
+- Templates and formatting guidelines
+- References to helper scripts for PDF/DOCX generation
+
+**Data Analysis Skill**:
+- Step-by-step data processing workflows
+- Python scripts for analysis tasks
+- Guidelines for visualization
+
+**Code Review Skill**:
+- Checklist for code quality review
+- Security scanning procedures
+- Best practices references
 
 #### Integration with Agent
 
 The agent should:
-1. Load and register all available skills on startup
-2. Include skill descriptions in the system prompt or tool list
-3. When the LLM requests a skill, validate and execute it
-4. Return skill results for LLM to process
+1. Load all skills from configured paths on startup
+2. Use skill descriptions to determine which skill(s) are relevant to the user's request
+3. When a skill is selected, include its instructions in the context
+4. Follow the instructions provided in the skill's markdown content
+5. Execute any scripts referenced by the skill if needed
+6. Return results based on the skill's workflow
 
 ### 3. Desktop Integration
 
@@ -249,10 +293,10 @@ All operations use `context.Context` for:
 - ✅ Extension placeholders
 
 ### Phase 2: Skills Implementation
-1. Implement basic built-in skills
-2. Add skill registry to agent
-3. Create skill discovery mechanism
-4. Add skill execution to agent loop
+1. ✅ Implement Anthropic-style skills loader
+2. Create example skills following SKILL.md format
+3. Add skill discovery mechanism to agent
+4. Integrate skill instructions into agent context
 
 ### Phase 3: MCP Integration
 1. Implement MCP protocol client
@@ -284,55 +328,64 @@ All operations use `context.Context` for:
 
 ## Example: Adding a Custom Skill
 
-```go
-package skills
+Create a new skill directory with a SKILL.md file:
 
-import "context"
-
-type CalculatorSkill struct {
-    *BaseSkill
-}
-
-func NewCalculatorSkill() *CalculatorSkill {
-    return &CalculatorSkill{
-        BaseSkill: NewBaseSkill(
-            "calculator",
-            "Perform basic arithmetic operations",
-            map[string]interface{}{
-                "type": "object",
-                "properties": map[string]interface{}{
-                    "operation": map[string]string{"type": "string"},
-                    "a":         map[string]string{"type": "number"},
-                    "b":         map[string]string{"type": "number"},
-                },
-                "required": []string{"operation", "a", "b"},
-            },
-        ),
-    }
-}
-
-func (s *CalculatorSkill) Execute(ctx context.Context, params map[string]interface{}) (interface{}, error) {
-    op := params["operation"].(string)
-    a := params["a"].(float64)
-    b := params["b"].(float64)
-    
-    switch op {
-    case "add":
-        return a + b, nil
-    case "subtract":
-        return a - b, nil
-    case "multiply":
-        return a * b, nil
-    case "divide":
-        if b == 0 {
-            return nil, fmt.Errorf("division by zero")
-        }
-        return a / b, nil
-    default:
-        return nil, fmt.Errorf("unknown operation: %s", op)
-    }
-}
+```bash
+mkdir -p ~/.workwise/skills/calculator-skill
 ```
+
+Create `~/.workwise/skills/calculator-skill/SKILL.md`:
+
+```markdown
+---
+name: calculator-skill
+description: Perform basic arithmetic operations. Use this skill when the user needs to calculate mathematical expressions or perform arithmetic.
+license: MIT
+---
+
+# Calculator Skill
+
+This skill provides instructions for performing arithmetic calculations.
+
+## When to Use
+
+Use this skill when the user requests:
+- Basic arithmetic (addition, subtraction, multiplication, division)
+- Mathematical calculations
+- Numeric operations
+
+## Instructions
+
+When performing calculations:
+
+1. Parse the mathematical expression from the user's request
+2. Identify the operation and operands
+3. Perform the calculation
+4. Return the result with proper formatting
+
+## Examples
+
+### Example 1: Simple Addition
+```
+User: "What is 25 plus 17?"
+Response: "25 + 17 = 42"
+```
+
+### Example 2: Division
+```
+User: "Divide 144 by 12"
+Response: "144 ÷ 12 = 12"
+```
+
+## Guidelines
+
+- Handle division by zero gracefully
+- Format results appropriately (decimals, fractions, etc.)
+- Show the calculation steps if helpful
+- Support multiple operations in sequence
+```
+
+The skill will be automatically discovered and loaded by WorkWise when the skills system is enabled in the configuration.
 
 ## Conclusion
 

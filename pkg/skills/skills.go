@@ -1,104 +1,220 @@
 package skills
 
 import (
-	"context"
 	"fmt"
+	"os"
+	"path/filepath"
+	"strings"
+
+	"gopkg.in/yaml.v3"
 )
 
-// Skill represents a skill that can be executed by the agent
-type Skill interface {
-	// Name returns the skill name
-	Name() string
+// Skill represents an Anthropic-style skill loaded from a SKILL.md file
+// Skills are folders containing instructions, scripts, and resources that
+// agents can discover and load dynamically to perform better at specific tasks.
+//
+// Reference: https://github.com/anthropics/skills
+type Skill struct {
+	// Metadata from YAML frontmatter
+	Name         string            `yaml:"name"`
+	Description  string            `yaml:"description"`
+	License      string            `yaml:"license,omitempty"`
+	AllowedTools []string          `yaml:"allowed-tools,omitempty"`
+	Metadata     map[string]string `yaml:"metadata,omitempty"`
 
-	// Description returns the skill description
-	Description() string
+	// Content from markdown body
+	Instructions string
 
-	// Parameters returns the skill parameters schema
-	Parameters() map[string]interface{}
-
-	// Execute executes the skill with given parameters
-	Execute(ctx context.Context, params map[string]interface{}) (interface{}, error)
+	// Path information
+	SkillPath string // Path to the skill directory
 }
 
-// Registry manages skills
-type Registry struct {
-	skills map[string]Skill
+// Loader manages loading and discovering skills from the filesystem
+type Loader struct {
+	skillPaths []string          // Directories to search for skills
+	skills     map[string]*Skill // Loaded skills indexed by name
 }
 
-// NewRegistry creates a new skills registry
-func NewRegistry() *Registry {
-	return &Registry{
-		skills: make(map[string]Skill),
+// NewLoader creates a new skills loader with the given search paths
+func NewLoader(paths []string) *Loader {
+	return &Loader{
+		skillPaths: paths,
+		skills:     make(map[string]*Skill),
 	}
 }
 
-// Register registers a skill
-func (r *Registry) Register(skill Skill) error {
-	name := skill.Name()
-	if _, exists := r.skills[name]; exists {
-		return fmt.Errorf("skill %s already registered", name)
+// LoadAll discovers and loads all skills from the configured paths
+func (l *Loader) LoadAll() error {
+	for _, basePath := range l.skillPaths {
+		// Expand home directory if needed
+		if strings.HasPrefix(basePath, "~/") {
+			home, err := os.UserHomeDir()
+			if err != nil {
+				return fmt.Errorf("failed to expand home directory: %w", err)
+			}
+			basePath = filepath.Join(home, basePath[2:])
+		}
+
+		// Check if path exists
+		if _, err := os.Stat(basePath); os.IsNotExist(err) {
+			continue // Skip non-existent paths
+		}
+
+		// Find all SKILL.md files
+		err := filepath.Walk(basePath, func(path string, info os.FileInfo, err error) error {
+			if err != nil {
+				return err
+			}
+
+			if !info.IsDir() && info.Name() == "SKILL.md" {
+				skillDir := filepath.Dir(path)
+				skill, err := LoadSkill(skillDir)
+				if err != nil {
+					return fmt.Errorf("failed to load skill from %s: %w", skillDir, err)
+				}
+
+				// Register the skill
+				if _, exists := l.skills[skill.Name]; exists {
+					return fmt.Errorf("duplicate skill name: %s", skill.Name)
+				}
+				l.skills[skill.Name] = skill
+			}
+
+			return nil
+		})
+
+		if err != nil {
+			return fmt.Errorf("failed to walk path %s: %w", basePath, err)
+		}
 	}
-	r.skills[name] = skill
+
 	return nil
 }
 
-// Get retrieves a skill by name
-func (r *Registry) Get(name string) (Skill, error) {
-	skill, exists := r.skills[name]
+// Get retrieves a loaded skill by name
+func (l *Loader) Get(name string) (*Skill, error) {
+	skill, exists := l.skills[name]
 	if !exists {
-		return nil, fmt.Errorf("skill %s not found", name)
+		return nil, fmt.Errorf("skill not found: %s", name)
 	}
 	return skill, nil
 }
 
-// List returns all registered skill names
-func (r *Registry) List() []string {
-	names := make([]string, 0, len(r.skills))
-	for name := range r.skills {
+// List returns all loaded skill names
+func (l *Loader) List() []string {
+	names := make([]string, 0, len(l.skills))
+	for name := range l.skills {
 		names = append(names, name)
 	}
 	return names
 }
 
-// Execute executes a skill by name
-func (r *Registry) Execute(ctx context.Context, name string, params map[string]interface{}) (interface{}, error) {
-	skill, err := r.Get(name)
+// GetAll returns all loaded skills
+func (l *Loader) GetAll() []*Skill {
+	skills := make([]*Skill, 0, len(l.skills))
+	for _, skill := range l.skills {
+		skills = append(skills, skill)
+	}
+	return skills
+}
+
+// LoadSkill loads a single skill from a directory containing a SKILL.md file
+func LoadSkill(skillDir string) (*Skill, error) {
+	skillPath := filepath.Join(skillDir, "SKILL.md")
+
+	// Read the SKILL.md file
+	content, err := os.ReadFile(skillPath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read SKILL.md: %w", err)
+	}
+
+	// Parse the skill
+	skill, err := ParseSkill(string(content))
 	if err != nil {
 		return nil, err
 	}
-	return skill.Execute(ctx, params)
-}
 
-// BaseSkill provides a base implementation for skills
-type BaseSkill struct {
-	name        string
-	description string
-	parameters  map[string]interface{}
-}
+	// Set the skill path
+	skill.SkillPath = skillDir
 
-// NewBaseSkill creates a new base skill
-func NewBaseSkill(name, description string, parameters map[string]interface{}) *BaseSkill {
-	return &BaseSkill{
-		name:        name,
-		description: description,
-		parameters:  parameters,
+	// Validate that skill name matches directory name
+	dirName := filepath.Base(skillDir)
+	if skill.Name != dirName {
+		return nil, fmt.Errorf("skill name '%s' does not match directory name '%s'", skill.Name, dirName)
 	}
+
+	return skill, nil
 }
 
-// Name returns the skill name
-func (s *BaseSkill) Name() string {
-	return s.name
+// ParseSkill parses a SKILL.md file content into a Skill structure
+func ParseSkill(content string) (*Skill, error) {
+	// Split frontmatter from body
+	parts := strings.SplitN(content, "---", 3)
+	if len(parts) < 3 {
+		return nil, fmt.Errorf("invalid SKILL.md format: missing YAML frontmatter")
+	}
+
+	// Parse YAML frontmatter
+	skill := &Skill{}
+	if err := yaml.Unmarshal([]byte(parts[1]), skill); err != nil {
+		return nil, fmt.Errorf("failed to parse YAML frontmatter: %w", err)
+	}
+
+	// Validate required fields
+	if skill.Name == "" {
+		return nil, fmt.Errorf("skill name is required")
+	}
+	if skill.Description == "" {
+		return nil, fmt.Errorf("skill description is required")
+	}
+
+	// Validate name format (lowercase alphanumeric + hyphens)
+	if !isValidSkillName(skill.Name) {
+		return nil, fmt.Errorf("invalid skill name format: %s (must be lowercase alphanumeric with hyphens)", skill.Name)
+	}
+
+	// Store markdown body as instructions
+	skill.Instructions = strings.TrimSpace(parts[2])
+
+	return skill, nil
 }
 
-// Description returns the skill description
-func (s *BaseSkill) Description() string {
-	return s.description
+// isValidSkillName checks if a skill name follows the specification
+// (lowercase Unicode alphanumeric + hyphen)
+func isValidSkillName(name string) bool {
+	if name == "" {
+		return false
+	}
+
+	for _, r := range name {
+		if !((r >= 'a' && r <= 'z') || (r >= '0' && r <= '9') || r == '-') {
+			return false
+		}
+	}
+
+	return true
 }
 
-// Parameters returns the skill parameters
-func (s *BaseSkill) Parameters() map[string]interface{} {
-	return s.parameters
+// GetScriptPath returns the path to a script within the skill directory
+func (s *Skill) GetScriptPath(scriptName string) string {
+	return filepath.Join(s.SkillPath, "scripts", scriptName)
 }
 
-// Note: This is a foundational structure for future skills support.
-// Concrete skills will be implemented as needed.
+// HasScript checks if a skill has a specific script
+func (s *Skill) HasScript(scriptName string) bool {
+	scriptPath := s.GetScriptPath(scriptName)
+	_, err := os.Stat(scriptPath)
+	return err == nil
+}
+
+// GetResourcePath returns the path to a resource within the skill directory
+func (s *Skill) GetResourcePath(resourceName string) string {
+	return filepath.Join(s.SkillPath, resourceName)
+}
+
+// Note: This implementation follows the Anthropic Agent Skills Spec.
+// Skills are folder-based with SKILL.md files containing YAML frontmatter
+// and markdown instructions. The agent loads these dynamically to improve
+// performance on specialized tasks.
+//
+// For more information, see: https://github.com/anthropics/skills

@@ -18,7 +18,7 @@ WorkWise is a flagship-level AIPC (AI-Powered Computer) application designed to 
 ## 🚀 Future Roadmap
 
 - **MCP Support**: Integration with Anthropic's Model Context Protocol
-- **Skills Framework**: Extensible skills system for custom capabilities
+- **Skills Framework**: ✅ Implemented - Anthropic-style skills loader for extending agent capabilities
 - **Desktop Integration**: Hotkey-activated overlay window on Windows/Mac
 - **Multi-Provider Support**: Additional LLM providers (Anthropic Claude, etc.)
 
@@ -150,6 +150,31 @@ workwise version
 - `clear` or `cls` - Clear the screen
 - `exit`, `quit`, or `q` - Exit the application
 
+### Using Skills
+
+WorkWise supports Anthropic-style skills for extending agent capabilities:
+
+1. **Enable skills** in your configuration:
+   ```yaml
+   extensions:
+     skills_enabled: true
+     skills_paths:
+       - "~/.workwise/skills"
+       - "./examples/skills"
+   ```
+
+2. **Create custom skills** following the [Anthropic Skills Spec](https://github.com/anthropics/skills):
+   ```bash
+   mkdir -p ~/.workwise/skills/my-skill
+   # Create SKILL.md with YAML frontmatter + instructions
+   ```
+
+3. **Use example skills** from `examples/skills/` directory
+
+Skills are automatically discovered and loaded, providing specialized instructions and workflows to the agent.
+
+For more details, see [examples/skills/README.md](examples/skills/README.md) and the [Architecture documentation](docs/ARCHITECTURE.md).
+
 ## 🏗️ Architecture
 
 WorkWise is built with a modular architecture:
@@ -166,7 +191,9 @@ WorkWise/
 │   └── extensions/        # Future extensions
 ├── pkg/
 │   ├── mcp/               # Model Context Protocol support (future)
-│   └── skills/            # Skills framework (future)
+│   └── skills/            # Skills framework (Anthropic-style)
+├── examples/
+│   └── skills/            # Example skills
 └── README.md
 ```
 
@@ -175,6 +202,7 @@ WorkWise/
 - **Agent**: Uses CloudWeGo Eino framework for agent orchestration
 - **LLM Client**: Integrates with LLM providers via CloudWeGo Eino-Ext
 - **CLI**: User-friendly command-line interface with interactive mode
+- **Skills**: Anthropic-style skills loader for extending agent capabilities with specialized instructions
 - **Extensions**: Pluggable architecture for MCP, skills, and desktop integration
 
 ## 🔌 LLM Providers
