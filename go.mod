@@ -4,6 +4,7 @@ go 1.24.10
 
 require (
 	github.com/cloudwego/eino v0.6.1
+	github.com/cloudwego/eino-ext/components/model/ollama v0.1.6
 	github.com/cloudwego/eino-ext/components/model/openai v0.1.5
 	github.com/urfave/cli/v2 v2.27.7
 	gopkg.in/yaml.v3 v3.0.1
@@ -16,7 +17,6 @@ require (
 	github.com/bytedance/sonic v1.14.1 // indirect
 	github.com/bytedance/sonic/loader v0.3.0 // indirect
 	github.com/cloudwego/base64x v0.1.6 // indirect
-	github.com/cloudwego/eino-ext/components/model/ollama v0.1.6 // indirect
 	github.com/cloudwego/eino-ext/libs/acl/openai v0.1.2 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.7 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
